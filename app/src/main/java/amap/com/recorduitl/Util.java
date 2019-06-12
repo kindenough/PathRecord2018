@@ -1,7 +1,11 @@
 package amap.com.recorduitl;
 
+import android.text.TextUtils;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.maps.model.LatLng;
@@ -95,5 +99,21 @@ public class Util {
 			}
 		}
 		return locations;
+	}
+
+	private static SimpleDateFormat sdf = null;
+	public synchronized static String formatUTC(long l, String strPattern) {
+		if (TextUtils.isEmpty(strPattern)) {
+			strPattern = "yyyy-MM-dd HH:mm:ss";
+		}
+		if (sdf == null) {
+			try {
+				sdf = new SimpleDateFormat(strPattern, Locale.CHINA);
+			} catch (Throwable e) {
+			}
+		} else {
+			sdf.applyPattern(strPattern);
+		}
+		return sdf == null ? "NULL" : sdf.format(l);
 	}
 }

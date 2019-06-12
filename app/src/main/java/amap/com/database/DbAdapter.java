@@ -44,6 +44,29 @@ public class DbAdapter {
 			+ "duration STRING,"
 			+ "averagespeed STRING,"
 			+ "date STRING" + ");";
+	private static final String POSITION_TABLE = "position";
+	private static final String POSITION_CREATE = "create table if not exists position("
+			+ KEY_ROWID
+			+ " integer primary key autoincrement,"
+			+ "ltime STRING,"
+			+ "dtime STRING,"
+			+ "x STRING,"
+			+ "y STRING,"
+			+ "speed STRING,"
+			+ "angle STRING,"
+			+ "desc STRING" + ");";//精度
+
+	private static final String POSITIONAPI_TABLE = "positionApi";
+	private static final String POSITIONAPI_CREATE = "create table if not exists positionApi("
+			+ KEY_ROWID
+			+ " integer primary key autoincrement,"
+			+ "ltime STRING,"
+			+ "dtime STRING,"
+			+ "x STRING,"
+			+ "y STRING,"
+			+ "speed STRING,"
+			+ "angle STRING,"
+			+ "desc STRING" + ");";//精度
 
 	public static class DatabaseHelper extends SQLiteOpenHelper {
 		public DatabaseHelper(Context context) {
@@ -53,6 +76,8 @@ public class DbAdapter {
 		@Override
 		public void onCreate(SQLiteDatabase db) {
 			db.execSQL(RECORD_CREATE);
+            db.execSQL(POSITION_CREATE);
+            db.execSQL(POSITIONAPI_CREATE);
 		}
 
 		@Override
@@ -103,8 +128,8 @@ public class DbAdapter {
 	 * @return
 	 */
 	public long createrecord(String distance, String duration,
-			String averagespeed, String pathline, String stratpoint,
-			String endpoint, String date) {
+							 String averagespeed, String pathline, String stratpoint,
+							 String endpoint, String date) {
 		ContentValues args = new ContentValues();
 		args.put("distance", distance);
 		args.put("duration", duration);
@@ -114,6 +139,33 @@ public class DbAdapter {
 		args.put("endpoint", endpoint);
 		args.put("date", date);
 		return db.insert(RECORD_TABLE, null, args);
+	}
+	public long createPosition(String x, String y,
+							   String ltime, String dtime, String speed,
+							   String angle, String desc) {
+		ContentValues args = new ContentValues();
+		args.put("x", x);
+		args.put("y", y);
+		args.put("ltime", ltime);
+		args.put("dtime", dtime);
+		args.put("speed", speed);
+		args.put("angle", angle);
+		args.put("desc", desc);
+		return db.insert(POSITION_TABLE, null, args);
+	}
+
+	public long createPositionApi(String x, String y,
+							   String ltime, String dtime, String speed,
+							   String angle, String desc) {
+		ContentValues args = new ContentValues();
+		args.put("x", x);
+		args.put("y", y);
+		args.put("ltime", ltime);
+		args.put("dtime", dtime);
+		args.put("speed", speed);
+		args.put("angle", angle);
+		args.put("desc", desc);
+		return db.insert(POSITIONAPI_TABLE, null, args);
 	}
 
 	/**
@@ -137,6 +189,7 @@ public class DbAdapter {
 					.getColumnIndex(DbAdapter.KEY_DATE)));
 			String lines = allRecordCursor.getString(allRecordCursor
 					.getColumnIndex(DbAdapter.KEY_LINE));
+			lines=getPositions(lines);//hsx add
 			record.setPathline(Util.parseLocations(lines));
 			record.setStartpoint(Util.parseLocation(allRecordCursor
 					.getString(allRecordCursor
@@ -173,6 +226,7 @@ public class DbAdapter {
 					.getColumnIndex(DbAdapter.KEY_DATE)));
 			String lines = cursor.getString(cursor
 					.getColumnIndex(DbAdapter.KEY_LINE));
+			lines = getPositions(lines);//hsx add
 			record.setPathline(Util.parseLocations(lines));
 			record.setStartpoint(Util.parseLocation(cursor.getString(cursor
 					.getColumnIndex(DbAdapter.KEY_STRAT))));
@@ -182,8 +236,44 @@ public class DbAdapter {
 		return record;
 	}
 
+	//hsx add
+	private String getPositions(String betweentime) {
+		String[] se = betweentime.split(",");
+		String ret = "";
+		if (se.length==2){
+            String start = se[0];
+            String stop = se[1];
+			String where = "ltime>"+start+" and ltime<"+stop;
+			Cursor cursor = db.query(POSITION_TABLE, getColumns_position(), where,
+					null, null, null, "ltime");
+			int i=0;
+			while (cursor.moveToNext()) {
+				if (ret!=""){
+					ret += ";";
+				}
+                double x = cursor.getDouble(cursor.getColumnIndex("x"));
+                double y = cursor.getDouble(cursor.getColumnIndex("y"));
+				ret+=String.valueOf(cursor.getDouble(cursor.getColumnIndex("y"))) + ",";
+				ret+=String.valueOf(cursor.getDouble(cursor.getColumnIndex("x"))) + ",";
+				ret+=cursor.getString(cursor.getColumnIndex("desc")) + ",";//lbs gps
+				ret+=cursor.getString(cursor.getColumnIndex("ltime")) + ",";
+				ret+=cursor.getString(cursor.getColumnIndex("speed")) + ",";
+				ret+=cursor.getString(cursor.getColumnIndex("angle"));
+				i++;
+			}
+            int count = cursor.getCount();
+		}
+		return ret;
+	}
+
 	private String[] getColumns() {
 		return new String[] { KEY_ROWID, KEY_DISTANCE, KEY_DURATION, KEY_SPEED,
 				KEY_LINE, KEY_STRAT, KEY_END, KEY_DATE };
+	}
+
+	//hsx add
+	private String[] getColumns_position() {
+		return new String[] { KEY_ROWID, "ltime", "dtime", "x",
+				"y", "speed", "angle", "desc" };
 	}
 }

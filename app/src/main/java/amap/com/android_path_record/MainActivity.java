@@ -4,10 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -32,6 +36,11 @@ import com.amap.api.trace.LBSTraceClient;
 import com.amap.api.trace.TraceListener;
 import com.amap.api.trace.TraceLocation;
 import com.amap.api.trace.TraceOverlay;
+
+import org.kymjs.kjframe.KJHttp;
+import org.kymjs.kjframe.http.HttpCallBack;
+import org.kymjs.kjframe.http.HttpParams;
+import org.kymjs.kjframe.utils.KJLoger;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -58,7 +67,10 @@ public class MainActivity extends Activity implements LocationSource,
 	private long mStartTime;
 	private long mEndTime;
 	private ToggleButton btn;
+	private ToggleButton zoombtn;
+	private ToggleButton shareBtn;
 	private DbAdapter DbHepler;
+	private DbAdapter DbHeplerGps;
 	private List<TraceLocation> mTracelocationlist = new ArrayList<TraceLocation>();
 	private List<TraceOverlay> mOverlayList = new ArrayList<TraceOverlay>();
 	private List<AMapLocation> recordList = new ArrayList<AMapLocation>();
@@ -68,15 +80,51 @@ public class MainActivity extends Activity implements LocationSource,
 	private TextView mResultShow;
 	private Marker mlocMarker;
 
+	private LocationManager mgr=null;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.basicmap_activity);
+
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
 		mMapView = (MapView) findViewById(R.id.map);
 		mMapView.onCreate(savedInstanceState);// 此方法必须重写
 		init();
 		initpolyline();
+
+		//步骤 1: 获取系统的定位管理器
+		mgr = (LocationManager)getSystemService(LOCATION_SERVICE);
+		mgr.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000/*毫秒，为测试方便*/, 1/*米*/, onLocationChange/*位置监听器*/);
+		DbHeplerGps = new DbAdapter(this);
 	}
+	//步骤3：位置监听器LocationListener 的设置，当位置发生变化是触发onLocationChanged( )
+	LocationListener onLocationChange = new LocationListener(){
+		public void onLocationChanged(Location amapLocation) {
+			//addText("Location Changed : (" + location.getLongitude()+","+location.getLatitude()+")");
+
+			String angle = String.valueOf(amapLocation.getBearing());
+			String y = String.valueOf(amapLocation.getLatitude());
+			String x = String.valueOf(amapLocation.getLongitude());
+			String speed = String.valueOf(amapLocation.getSpeed());
+			String ltime = String.valueOf(amapLocation.getTime());
+			String dtime = getcueDate(System.currentTimeMillis());
+			String acc = String.valueOf(amapLocation.getAccuracy());
+
+			DbHeplerGps.open();
+			DbHeplerGps.createPositionApi(x,y,ltime,dtime,speed,angle,acc);
+			DbHeplerGps.close();
+		}
+		public void onProviderDisabled(String arg0) {
+			//addText("onProviderDisabled");
+		}
+		public void onProviderEnabled(String arg0) {
+			//addText("onProviderEnabled");
+		}
+		public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+			//addText("onStatusChanged");
+		}
+	};
 
 	/**
 	 * 初始化AMap对象
@@ -86,6 +134,9 @@ public class MainActivity extends Activity implements LocationSource,
 			mAMap = mMapView.getMap();
 			setUpMap();
 		}
+
+		shareBtn = (ToggleButton) findViewById(R.id.shareBtn);
+		zoombtn = (ToggleButton) findViewById(R.id.zoombtn);
 		btn = (ToggleButton) findViewById(R.id.locationbtn);
 		btn.setOnClickListener(new OnClickListener() {
 			@Override
@@ -116,6 +167,22 @@ public class MainActivity extends Activity implements LocationSource,
 		mTraceoverlay = new TraceOverlay(mAMap);
 	}
 
+	protected void savePosition(AMapLocation amapLocation)
+	{
+
+		String angle = String.valueOf(amapLocation.getBearing());
+		String y = String.valueOf(amapLocation.getLatitude());
+		String x = String.valueOf(amapLocation.getLongitude());
+		String speed = String.valueOf(amapLocation.getSpeed());
+		String ltime = String.valueOf(amapLocation.getTime());
+		String dtime = getcueDate(System.currentTimeMillis());
+
+		DbHepler = new DbAdapter(this);
+		DbHepler.open();
+		DbHepler.createPosition(x,y,ltime,dtime,speed,angle,amapLocation.getProvider());
+		DbHepler.close();
+	}
+
 	protected void saveRecord(List<AMapLocation> list, String time) {
 		if (list != null && list.size() > 0) {
 			DbHepler = new DbAdapter(this);
@@ -123,7 +190,7 @@ public class MainActivity extends Activity implements LocationSource,
 			String duration = getDuration();
 			float distance = getDistance(list);
 			String average = getAverage(distance);
-			String pathlineSring = getPathLineString(list);
+			String pathlineSring = mStartTime + "," + mEndTime;//getPathLineString(list);
 			AMapLocation firstLocaiton = list.get(0);
 			AMapLocation lastLocaiton = list.get(list.size() - 1);
 			String stratpoint = amapLocationToString(firstLocaiton);
@@ -275,7 +342,9 @@ public class MainActivity extends Activity implements LocationSource,
 				mListener.onLocationChanged(amapLocation);// 显示系统小蓝点
 				LatLng mylocation = new LatLng(amapLocation.getLatitude(),
 						amapLocation.getLongitude());
-				mAMap.moveCamera(CameraUpdateFactory.changeLatLng(mylocation));
+				if( zoombtn.isChecked() ) {
+					mAMap.moveCamera(CameraUpdateFactory.changeLatLng(mylocation));
+				}
 				if (btn.isChecked()) {
 					record.addpoint(amapLocation);
 					mPolyoptions.add(mylocation);
@@ -284,6 +353,55 @@ public class MainActivity extends Activity implements LocationSource,
 					if (mTracelocationlist.size() > tracesize - 1) {
 						trace();
 					}
+					savePosition(amapLocation);
+				}
+				//共享位置
+				if(shareBtn.isChecked()){
+
+					//网络请求
+					KJHttp kjh = new KJHttp();
+					HttpParams params = new HttpParams();
+					params.put("tel", "360");
+					//params.put("rec", "");
+					params.put("x", Double.toString(amapLocation.getLongitude()));
+					params.put("y", Double.toString(amapLocation.getLatitude()));
+					params.put("speed", Float.toString(amapLocation.getSpeed()));
+					params.put("time", Util.formatUTC(System.currentTimeMillis(),
+							"yyyy-MM-dd HH:mm:ss"));
+					params.put("accuracy", amapLocation.getAccuracy() + "米");
+					params.put("deviceid", "360");
+					params.put("angle", Float.toString(amapLocation.getBearing()));
+					params.put("teamid", "1");
+					kjh.post("http://wncg.kingtopinfo.com/mymvc4/position2/postposition", params,
+							new HttpCallBack() {
+								@Override
+								public void onPreStart() {
+									super.onPreStart();
+									KJLoger.debug("即将开始http请求");
+									// et.setText("即将开始http请求");
+								}
+
+								@Override
+								public void onSuccess(String t) {
+									super.onSuccess(t);
+//									ViewInject.longToast("请求成功");
+									KJLoger.debug("请求成功:" + t.toString());
+									// et.setText("请求成功:" + t.toString());
+								}
+
+								@Override
+								public void onFailure(int errorNo, String strMsg) {
+									super.onFailure(errorNo, strMsg);
+									KJLoger.debug("出现异常:" + strMsg);
+									// et.setText("出现异常:" + strMsg);
+								}
+
+								@Override
+								public void onFinish() {
+									super.onFinish();
+									KJLoger.debug("请求完成，不管成功还是失败");
+								}
+							});
 				}
 			} else {
 				String errText = "定位失败," + amapLocation.getErrorCode() + ": "

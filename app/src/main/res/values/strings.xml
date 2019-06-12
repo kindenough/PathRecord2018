@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Android-path-record</string>
+    <string name="app_name">记录</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
 </resources>

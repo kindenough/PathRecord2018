@@ -19,10 +19,34 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingLeft="5dp"
-            android:paddingStart="5dp" 
-            android:textOn="停止"
-            android:textOff="开始"> 
-        </ToggleButton>
+            android:paddingStart="5dp"
+            android:textOff="开始"
+            android:textOn="停止"></ToggleButton>
+
+        <ToggleButton
+            android:id="@+id/zoombtn"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="80dp"
+            android:descendantFocusability="beforeDescendants"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingLeft="5dp"
+            android:paddingStart="5dp"
+            android:textOff="自动定位"
+            android:textOn="取消自动"></ToggleButton>
+
+        <ToggleButton
+            android:id="@+id/shareBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginEnd="76dp"
+            android:textOff="共享位置"
+            android:textOn="取消共享"></ToggleButton>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -58,7 +82,7 @@
                 android:clickable="false"
                 android:enabled="true"
                 android:textSize="18dp"
-                android:text="record" />
+                android:text="回放" />
         </LinearLayout>
     </RelativeLayout>
 

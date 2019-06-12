@@ -298,7 +298,7 @@ public class RecordShowActivity extends Activity implements
 		if (graspList == null || graspList.size() < 2) {
 			return;
 		}
-		LatLng startPoint = graspList.get(0);
+		LatLng startPoint = graspList.get(0) ;
 		LatLng endPoint = graspList.get(graspList.size() - 1);
 		mGraspPolyline = mAMap.addPolyline(new PolylineOptions()
 				.setCustomTexture(
