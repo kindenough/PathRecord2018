@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -40,8 +41,15 @@ import com.amap.api.trace.TraceOverlay;
 import org.kymjs.kjframe.KJHttp;
 import org.kymjs.kjframe.http.HttpCallBack;
 import org.kymjs.kjframe.http.HttpParams;
+import org.kymjs.kjframe.http.Request;
 import org.kymjs.kjframe.utils.KJLoger;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -79,6 +87,13 @@ public class MainActivity extends Activity implements LocationSource,
 	private TraceOverlay mTraceoverlay;
 	private TextView mResultShow;
 	private Marker mlocMarker;
+
+	private String newName = "record.db";
+	//要上传的本地文件路径
+	private String uploadFilePath = android.os.Environment
+			.getExternalStorageDirectory().getAbsolutePath() + "/recordPath/record.db";
+	//上传到服务器的指定位置
+	private String actionUrl = "http://wncg.kingtopinfo.com/upload/upload.ashx";
 
 	private LocationManager mgr=null;
 	@Override
@@ -126,7 +141,12 @@ public class MainActivity extends Activity implements LocationSource,
 		}
 	};
 
-	/**
+	//上传按钮事件
+    public void nClick_BtnUpload(View view) {
+		uploadFile();
+        //Toast.makeText(getApplicationContext(), "upload clicked", Toast.LENGTH_LONG).show();
+    }
+ /**
 	 * 初始化AMap对象
 	 */
 	private void init() {
@@ -135,7 +155,7 @@ public class MainActivity extends Activity implements LocationSource,
 			setUpMap();
 		}
 
-		shareBtn = (ToggleButton) findViewById(R.id.shareBtn);
+        shareBtn = (ToggleButton) findViewById(R.id.shareBtn);
 		zoombtn = (ToggleButton) findViewById(R.id.zoombtn);
 		btn = (ToggleButton) findViewById(R.id.locationbtn);
 		btn.setOnClickListener(new OnClickListener() {
@@ -544,4 +564,78 @@ public class MainActivity extends Activity implements LocationSource,
 		}
 		return distance;
 	}
+
+    /* 上传文件至Server的方法 */
+    private void uploadFile() {
+        String end = "\r\n";
+        String twoHyphens = "--";
+        String boundary = "*****";
+        try {
+            URL url = new URL(actionUrl);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            /* 允许Input、Output，不使用Cache */
+            con.setDoInput(true);
+            con.setDoOutput(true);
+            con.setUseCaches(false);
+
+            // 设置http连接属性
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Connection", "Keep-Alive");
+            con.setRequestProperty("Charset", "UTF-8");
+            con.setRequestProperty("Content-Type",
+                    "multipart/form-data;boundary=" + boundary);
+
+            DataOutputStream ds = new DataOutputStream(con.getOutputStream());
+            ds.writeBytes(twoHyphens + boundary + end);
+            ds.writeBytes("Content-Disposition: form-data; "
+                    + "name=\"file1\";filename=\"" + newName + "\"" + end);
+            ds.writeBytes(end);
+
+            // 取得文件的FileInputStream
+            FileInputStream fStream = new FileInputStream(uploadFilePath);
+            /* 设置每次写入1024bytes */
+            int bufferSize = 1024;
+            byte[] buffer = new byte[bufferSize];
+            int length = -1;
+            /* 从文件读取数据至缓冲区 */
+            while ((length = fStream.read(buffer)) != -1) {
+                /* 将资料写入DataOutputStream中 */
+                ds.write(buffer, 0, length);
+            }
+            ds.writeBytes(end);
+            ds.writeBytes(twoHyphens + boundary + twoHyphens + end);
+
+            fStream.close();
+            ds.flush();
+            /* 取得Response内容 */
+            InputStream is = con.getInputStream();
+            int ch;
+            StringBuffer b = new StringBuffer();
+            while ((ch = is.read()) != -1) {
+                b.append((char) ch);
+            }
+            /* 将Response显示于Dialog */
+            //showDialog("上传成功" + b.toString().trim());
+            Toast.makeText(MainActivity.this, "上传成功", Toast.LENGTH_SHORT).show();
+            /* 关闭DataOutputStream */
+            ds.close();
+        } catch (Exception e) {
+            //showDialog("上传失败" + e);
+            Toast.makeText(MainActivity.this, "上传失败:"+uploadFilePath+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+//	private void uploadFile2()
+//	{
+//        OkHttpClient client = new OkHttpClient();//创建OkHttpClient对象。
+//        MediaType fileType = MediaType.parse("File/*");//数据类型为json格式，
+//        File file = new File("path");//file对象.
+//        RequestBody body = RequestBody.create(fileType , file );
+//        Request request = new Request.Builder()
+//                .url("http://www.baidu.com")
+//                .post(body)
+//                .build();
+//        client.newCall(request).enqueue(new Callback() {。。。});//此处省略回调方法。
+//        okhttp3.re
+//	}
 }

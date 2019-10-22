@@ -13,8 +13,8 @@
             android:id="@+id/locationbtn"
             android:layout_width="70dp"
             android:layout_height="match_parent"
-            android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
             android:descendantFocusability="beforeDescendants"
             android:gravity="center"
             android:orientation="vertical"
@@ -27,9 +27,8 @@
             android:id="@+id/zoombtn"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
-            android:layout_marginStart="80dp"
+            android:layout_toEndOf="@+id/locationbtn"
             android:descendantFocusability="beforeDescendants"
             android:gravity="center"
             android:orientation="vertical"
@@ -42,48 +41,19 @@
             android:id="@+id/shareBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
             android:layout_alignParentTop="true"
-            android:layout_marginEnd="76dp"
+            android:layout_toEndOf="@+id/zoombtn"
             android:textOff="共享位置"
             android:textOn="取消共享"></ToggleButton>
 
-        <LinearLayout
+        <Button
+            android:onClick="nClick_BtnUpload"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_centerInParent="true"
-            android:gravity="center"
-            android:orientation="vertical" >
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_toEndOf="@+id/shareBtn"
+            android:text="上传库文件" />
 
-            <TextView
-                android:id="@+id/title_center"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textSize="18dp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/title_lly_right"
-            android:layout_width="90dp"
-            android:layout_height="match_parent"
-            android:layout_alignParentRight="true"
-            android:descendantFocusability="beforeDescendants"
-            android:gravity="center_vertical|right"
-            android:orientation="horizontal"
-            android:paddingRight="5dp" 
-            android:onClick="record">
-
-            <TextView
-                android:id="@+id/title_tv_option"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:clickable="false"
-                android:enabled="true"
-                android:textSize="18dp"
-                android:text="回放" />
-        </LinearLayout>
     </RelativeLayout>
 
     <com.amap.api.maps.MapView 
